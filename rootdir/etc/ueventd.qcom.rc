@@ -206,6 +206,9 @@
 /dev/nfc-nci              0660    nfc         nfc
 /dev/assd                 0660    nfc         nfc
 
+# Fingerprint device
+/dev/qbt1000              0660   system     system
+
 # UIO devices
 /dev/uio0                 0660   system     system
 /dev/uio1                 0660   system     system
