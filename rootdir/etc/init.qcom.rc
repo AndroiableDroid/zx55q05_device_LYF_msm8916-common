@@ -267,7 +267,72 @@ on boot
     write /proc/sys/net/ipv6/conf/rmnet6/accept_ra 2
     write /proc/sys/net/ipv6/conf/rmnet7/accept_ra 2
 
-    # To prevent out of order acknowledgementled
+    # To prevent out of order acknowledgements from making
+    # connection tracking to treat them as not belonging to
+    # the connection they belong to.
+    # Otherwise, a weird issue happens in which some long
+    # connections on high-throughput links get dropped when
+    # an ack packet comes out of order
+    write /proc/sys/net/netfilter/nf_conntrack_tcp_be_liberal 1
+
+    # Permissions required for power HAL
+    chown system system /sys/devices/system/cpu/cpu0/core_ctl/max_cpus
+
+    # Wifi firmware reload path
+    chown wifi wifi /sys/module/wlan/parameters/fwpath
+
+    mkdir /persist/time 0770 system system
+
+    # Graphics node permissions
+    chown system graphics /sys/class/graphics/fb0/dyn_pu
+    chmod 0664 /sys/class/graphics/fb0/dyn_pu
+    chown system graphics /sys/class/graphics/fb0/dynamic_fps
+    chmod 0664 /sys/class/graphics/fb0/dynamic_fps
+    chown system graphics /sys/class/graphics/fb0/idle_time
+    chmod 0664 /sys/class/graphics/fb0/idle_time
+    chown system graphics /sys/class/graphics/fb0/mode
+    chmod 0664 /sys/class/graphics/fb0/mode
+    chown system graphics /sys/class/graphics/fb0/modes
+    chmod 0664 /sys/class/graphics/fb0/modes
+
+    # Wifi firmware reload path
+    chown wifi wifi /sys/module/wlan/parameters/fwpath
+
+service cnd /vendor/bin/cnd
+    class main
+    user system
+    group system wifi inet radio wakelock net_admin
+    writepid /dev/cpuset/system-background/tasks
+
+service dpmQmiMgr /vendor/bin/dpmQmiMgr
+    class main
+    user system
+    group radio system
+
+service irsc_util /system/vendor/bin/irsc_util "/system/vendor/etc/sec_config"
+    class main
+    user root
+    oneshot
+
+service rmt_storage /system/vendor/bin/rmt_storage
+    class core
+    user root
+    group system wakelock
+    shutdown critical
+    ioprio rt 0
+    writepid /dev/cpuset/system-background/tasks
+    shutdown critical
+
+service tftp_server /vendor/bin/tftp_server
+   class core
+   user root
+   writepid /dev/cpuset/system-background/tasks
+
+service hciattach /system/vendor/bin/init.qcom.bt.sh
+    class late_start
+    user bluetooth
+    group bluetooth net_bt_admin
+    disabled
     seclabel u:r:bluetooth_loader:s0
     oneshot
 
@@ -343,6 +408,22 @@ service atfwd /vendor/bin/ATFWD-daemon
     class late_start
     user system
     group system radio
+    disabled
+
+on property:persist.radio.atfwd.start=true
+    start atfwd
+
+service qcom-sh /system/vendor/bin/init.qcom.sh
+    class late_start
+    user root
+    oneshot
+
+service qcom-post-boot /vendor/bin/init.qcom.post_boot.sh
+    class late_start
+    user root
+    group root system wakelock graphics
+    disabled
+    oneshot
 
 on charger
     start qcom-post-boot
